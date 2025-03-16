@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO Chat</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <input id="nickname" placeholder="Enter your nickname" />
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <p id="typing"></p>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+        var nicknameInput = document.getElementById('nickname');
+        var typingElement = document.getElementById('typing');
+        
+        var userNickname = ""; 
+        
+        nicknameInput.addEventListener('change', function() {
+            userNickname = nicknameInput.value; 
+            socket.emit('set nickname', userNickname);
+            nicknameInput.style.display = 'none';  
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', { nickname: userNickname, message: input.value });
+                input.value = '';
+            }
+        });
+
+        socket.on('chat message', function(data) {
+            console.log("Received chat message:", data); 
+
+            const item = document.createElement('li');
+            let sender = data.nickname || "Unknown";
+            let messageText = data.message || "";
+
+            item.textContent = `${sender}: ${messageText}`;
+
+            
+            if (sender === "System") {
+                item.classList.add("system-message");
+            } 
+            
+            else if (sender === nicknameInput.value) {
+                item.classList.add("my-message");
+            } 
+            
+            else {
+                item.classList.add("other-message");
+            }
+
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;  
+        });
+
+        input.addEventListener('input', function() {
+            socket.emit('typing', userNickname);
+        });
+
+        socket.on('typing', function(nickname) {
+            if (typingElement) {
+                typingElement.innerText = `${nickname} is typing...`;
+                setTimeout(() => { typingElement.innerText = ''; }, 3000);
+            }
+        });
+    </script>
+  </body>
+</html>
